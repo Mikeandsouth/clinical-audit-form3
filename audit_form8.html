@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Clinical Audit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 28rem;
+        }
+        .form-select, .form-input, .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            font-size: 1rem;
+        }
+        .btn-submit {
+            background-color: #4f46e5;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+        .btn-submit:hover {
+            background-color: #4338ca;
+        }
+        .btn-export {
+            background-color: #10b981;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
+            white-space: nowrap;
+        }
+        .btn-export:hover {
+            background-color: #059669;
+        }
+        .btn-copy {
+            background-color: #e0e7ff;
+            color: #4f46e5;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border: 1px solid #4f46e5;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
+            white-space: nowrap;
+        }
+        .btn-copy:hover {
+            background-color: #c7d2fe;
+        }
+        .message-box {
+            background-color: #d1fae5;
+            color: #065f46;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .message-box.show {
+            opacity: 1;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .rating-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease-in-out;
+            font-weight: 600;
+        }
+        .rating-label:hover {
+            background-color: #f3f4f6;
+        }
+        .rating-input:checked + .rating-label {
+            background-color: #e0e7ff;
+            border-color: #4f46e5;
+            transform: scale(1.02);
+        }
+        .rating-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container flex flex-col items-center">
+    <h1 class="text-3xl font-bold text-blue-800 mb-4 text-center">Lynas Clinical Safety</h1>
+    <h1 class="text-2xl font-bold text-gray-800 mb-2">Monthly Clinical Audit</h1>
+    <p class="text-sm text-gray-500 mb-6">Select an incident number to complete the audit.</p>
+    
+    <div id="loading" class="loader my-8" style="display: none;"></div>
+    
+    <form id="auditForm" class="w-full space-y-4">
+        
+        <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <p class="block text-gray-700 font-semibold mb-2 text-center">
+                To update this list, edit the file in a text editor and paste your new CSV data into the code.
+            </p>
+        </div>
+
+        <label for="incidentNumber" class="block text-gray-700 font-semibold mt-4">Incident Number</label>
+        <div class="relative">
+            <select id="incidentNumber" name="incidentNumber" class="form-select appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent cursor-pointer">
+                <option value="">Loading incident numbers...</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+            </div>
+        </div>
+
+        <button type="button" id="copyBtn" class="btn-copy focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full mb-4">
+            Copy Incident Number
+            <svg xmlns="http://www.w3.org/2000/svg" class="inline-block h-4 w-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+        </button>
+
+        <!-- Box to display incident details -->
+        <div id="incidentDetailsBox" class="bg-gray-100 p-4 rounded-lg text-sm text-gray-700 space-y-2" style="display: none;">
+            <p><strong>Username:</strong> <span id="usernameDisplay"></span></p>
+            <p><strong>Date & Time:</strong> <span id="dateTimeDisplay"></span></p>
+        </div>
+        
+        <!-- Auditor's Name Input -->
+        <div>
+            <label for="auditorName" class="block text-gray-700 font-semibold mb-2">Auditor's Name</label>
+            <input type="text" id="auditorName" name="auditorName" placeholder="Enter your name" class="form-input w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+        </div>
+
+        <!-- Audit Rating Section - Now with stars -->
+        <div>
+            <span class="block text-gray-700 font-semibold mb-2">Audit Rating</span>
+            <div class="grid grid-cols-4 gap-2">
+                <div>
+                    <input type="radio" id="rating-1" name="rating" value="1 Star" class="rating-input">
+                    <label for="rating-1" class="rating-label">★</label>
+                </div>
+                <div>
+                    <input type="radio" id="rating-2" name="rating" value="2 Stars" class="rating-input">
+                    <label for="rating-2" class="rating-label">★★</label>
+                </div>
+                <div>
+                    <input type="radio" id="rating-3" name="rating" value="3 Stars" class="rating-input">
+                    <label for="rating-3" class="rating-label">★★★</label>
+                </div>
+                <div>
+                    <input type="radio" id="rating-4" name="rating" value="4 Stars" class="rating-input">
+                    <label for="rating-4" class="rating-label">★★★★</label>
+                </div>
+            </div>
+            <!-- Star Rating Legend -->
+            <div class="text-sm text-gray-500 mt-4 p-2 rounded-md bg-gray-50 border border-gray-200">
+                <p><strong>★</strong> - Unsafe</p>
+                <p><strong>★★</strong> - Below Expected Standard</p>
+                <p><strong>★★★</strong> - Expected Standard</p>
+                <p><strong>★★★★</strong> - Excellent</p>
+            </div>
+        </div>
+
+        <!-- Comments Textarea -->
+        <div>
+            <label for="comments" class="block text-gray-700 font-semibold mb-2">Comments (Optional)</label>
+            <textarea id="comments" name="comments" rows="3" placeholder="Add any relevant notes here..." class="form-textarea w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit w-full mt-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Mark as Completed
+        </button>
+    </form>
+    
+    <button id="exportBtn" class="btn-export float-right mt-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+        Export to CSV (admin only)
+    </button>
+
+    <div id="messageBox" class="message-box mt-4"></div>
+
+    <div id="fileErrorBox" class="message-box mt-4 bg-red-100 text-red-800 hidden">
+        <p><strong>Error: Network request blocked.</strong></p>
+        <p>This is likely due to browser security preventing the form from sending a notification from a local file. To fix this, you can use a local web server (e.g., Python's simple HTTP server) to serve the file. Run `python -m http.server` in the terminal in the same directory as this file.</p>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Global variables provided by the environment
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    let db;
+    let auth;
+    let userId;
+    let incidentData = {};
+
+    const email_webhook_url = 'https://hooks.zapier.com/hooks/catch/21589513/uhkeeqp/';
+
+    const commentsInput = document.getElementById('comments');
+    const messageBox = document.getElementById('messageBox');
+    const loadingIndicator = document.getElementById('loading');
+    const incidentDropdown = document.getElementById('incidentNumber');
+    const auditorNameInput = document.getElementById('auditorName');
+    const auditForm = document.getElementById('auditForm');
+    const exportBtn = document.getElementById('exportBtn');
+    const incidentDetailsBox = document.getElementById('incidentDetailsBox');
+    const usernameDisplay = document.getElementById('usernameDisplay');
+    const dateTimeDisplay = document.getElementById('dateTimeDisplay');
+    const copyBtn = document.getElementById('copyBtn');
+    const fileErrorBox = document.getElementById('fileErrorBox');
+
+    function showMessage(message, type = 'success') {
+        messageBox.textContent = message;
+        if (type === 'success') {
+            messageBox.className = 'message-box show bg-green-100 text-green-800';
+        } else if (type === 'error') {
+            messageBox.className = 'message-box show bg-red-100 text-red-800';
+        }
+        setTimeout(() => {
+            messageBox.classList.remove('show');
+        }, 3000);
+    }
+
+    async function initializeFirebase() {
+        if (Object.keys(firebaseConfig).length === 0) {
+            console.error("Firebase config is not available. Please ensure the app is configured correctly.");
+            showMessage("Error: Firebase configuration missing.", "error");
+            return;
+        }
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken);
+            } else {
+                await signInAnonymously(auth);
+            }
+            userId = auth.currentUser.uid;
+            console.log("Firebase initialized and authenticated successfully.");
+            console.log(`Current User ID: ${userId}`);
+            
+            startDataListeners();
+        } catch (error) {
+            console.error("Failed to initialize Firebase:", error);
+            showMessage("Error initializing Firebase. See console for details.", "error");
+        }
+    }
+
+    async function loadCsv() {
+        /*
+        * PASTE YOUR MONTHLY CSV DATA HERE.
+        *
+        * IMPORTANT:
+        * 1. The data must be a single string.
+        * 2. The data must start with the header row.
+        * 3. Make sure to paste your data between the backticks (`).
+        */
+        const csvDataString = `Incident Number,username,Date & Time
+14042514243415,dave,14/04/2025 14:33
+14042516462059,mains,14/04/2025 20:55
+1404252059816,jack,14/04/2025 21:05
+1504251145152,jack,16/04/2025 12:52
+`;
+        
+        const rows = csvDataString.trim().split('\n');
+        if (rows.length <= 1) {
+            return [];
+        }
+        const headers = rows[0].split(',').map(header => header.trim());
+        const incidents = rows.slice(1).map(row => {
+            const values = row.split(',');
+            let rowData = {};
+            headers.forEach((header, index) => {
+                rowData[header] = values[index] ? values[index].replace(/'/g, '').trim() : '';
+            });
+            return rowData;
+        });
+
+        const uniqueIncidents = Array.from(new Set(incidents.map(inc => inc['Incident Number']))).map(num => incidents.find(inc => inc['Incident Number'] === num));
+        return uniqueIncidents;
+    }
+
+    async function startDataListeners() {
+        const auditRecords = await loadCsv();
+        if (auditRecords.length === 0) {
+            incidentDropdown.innerHTML = '<option value="">No incidents found or data is empty</option>';
+            incidentDropdown.disabled = true;
+            copyBtn.disabled = true;
+            auditForm.querySelector('button[type="submit"]').disabled = true;
+            incidentDetailsBox.style.display = 'none';
+            loadingIndicator.style.display = 'none';
+            return;
+        }
+
+        const completedRef = collection(db, `artifacts/${appId}/public/data/completed_audits`);
+        onSnapshot(completedRef, (snapshot) => {
+            const completedNumbers = new Set();
+            snapshot.forEach(doc => {
+                completedNumbers.add(doc.data().incidentNumber);
+            });
+            
+            const uncompletedIncidents = auditRecords.filter(record => !completedNumbers.has(record['Incident Number']));
+
+            incidentData = {};
+            uncompletedIncidents.forEach(record => {
+                incidentData[record['Incident Number']] = {
+                    username: record["username"],
+                    dateTime: record['Date & Time']
+                };
+            });
+
+            incidentDropdown.innerHTML = '';
+            if (uncompletedIncidents.length === 0) {
+                incidentDropdown.innerHTML = '<option value="">All incidents completed!</option>';
+                incidentDropdown.disabled = true;
+                copyBtn.disabled = true;
+                auditForm.querySelector('button[type="submit"]').disabled = true;
+                sendCompletionNotification();
+            } else {
+                uncompletedIncidents.forEach(record => {
+                    const option = document.createElement('option');
+                    option.value = record['Incident Number'];
+                    option.textContent = record['Incident Number'];
+                    incidentDropdown.appendChild(option);
+                });
+                incidentDropdown.disabled = false;
+                copyBtn.disabled = false;
+                auditForm.querySelector('button[type="submit"]').disabled = false;
+            }
+            loadingIndicator.style.display = 'none';
+
+            // Initial display of incident details for the first option
+            const initialIncidentNumber = incidentDropdown.value;
+            if (initialIncidentNumber) {
+                updateIncidentDetails(initialIncidentNumber);
+            } else {
+                incidentDetailsBox.style.display = 'none';
+            }
+        });
+    }
+    
+    function updateIncidentDetails(incidentNumber) {
+        const details = incidentData[incidentNumber];
+        if (details) {
+            usernameDisplay.textContent = details.username || 'N/A';
+            dateTimeDisplay.textContent = details.dateTime || 'N/A';
+            incidentDetailsBox.style.display = 'block';
+        } else {
+            incidentDetailsBox.style.display = 'none';
+        }
+    }
+
+    incidentDropdown.addEventListener('change', (event) => {
+        const selectedIncident = event.target.value;
+        if (selectedIncident) {
+            updateIncidentDetails(selectedIncident);
+        } else {
+            incidentDetailsBox.style.display = 'none';
+        }
+    });
+
+    copyBtn.addEventListener('click', () => {
+        const incidentNumber = incidentDropdown.value;
+        if (incidentNumber) {
+            document.execCommand('copy');
+            showMessage('Incident number copied to clipboard!');
+        }
+    });
+
+    auditForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const incidentNumber = incidentDropdown.value;
+        const auditorName = auditorNameInput.value.trim();
+        const rating = document.querySelector('input[name="rating"]:checked');
+        const comments = commentsInput.value.trim();
+
+        if (!incidentNumber || !auditorName || !rating) {
+            showMessage('Please fill out all required fields.', 'error');
+            return;
+        }
+
+        const details = incidentData[incidentNumber];
+        const auditRecord = {
+            incidentNumber,
+            auditorName,
+            rating: rating.value,
+            comments,
+            username: details.username,
+            dateTime: details.dateTime,
+            completedAt: serverTimestamp(),
+            completedBy: userId
+        };
+
+        try {
+            const completedRef = collection(db, `artifacts/${appId}/public/data/completed_audits`);
+            await addDoc(completedRef, auditRecord);
+            showMessage('Audit submitted successfully!');
+            commentsInput.value = '';
+            const checkedRating = document.querySelector('input[name="rating"]:checked');
+            if (checkedRating) checkedRating.checked = false;
+        } catch (error) {
+            console.error('Error adding document: ', error);
+            showMessage('Error submitting audit. Please try again.', 'error');
+        }
+    });
+
+    function sendCompletionNotification() {
+        if (!email_webhook_url) {
+            console.warn("Webhook URL is not configured. Not sending completion notification.");
+            return;
+        }
+        
+        const payload = {
+            message: "All clinical audits have been completed!",
+            appId: appId
+        };
+        try {
+            fetch(email_webhook_url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error("Webhook notification failed with status:", response.status);
+                }
+            })
+            .catch(error => {
+                console.error("Error sending webhook notification. This may be due to browser security restrictions on local files.", error);
+            });
+        } catch (error) {
+            console.error("Caught a network error trying to send webhook notification:", error);
+            fileErrorBox.classList.remove('hidden');
+        }
+    }
+
+    exportBtn.addEventListener('click', async () => {
+        try {
+            const completedRef = collection(db, `artifacts/${appId}/public/data/completed_audits`);
+            const querySnapshot = await getDocs(completedRef);
+            let csvContent = "Incident Number,Username,Date & Time,Auditor Name,Rating,Comments,Completed At\n";
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                const completedDate = data.completedAt ? new Date(data.completedAt.toMillis()).toLocaleString() : 'N/A';
+                const commentsSafe = data.comments.replace(/"/g, '""');
+                csvContent += `"${data.incidentNumber}","${data.username}","${data.dateTime}","${data.auditorName}","${data.rating}","${commentsSafe}","${completedDate}"\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'completed_audits.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showMessage('Export successful!');
+        } catch (error) {
+            console.error('Error exporting data: ', error);
+            showMessage('Error exporting data. Please try again.', 'error');
+        }
+    });
+    
+    initializeFirebase();
+</script>
+</body>
+</html>
